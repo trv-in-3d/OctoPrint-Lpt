@@ -1,4 +1,4 @@
-*.pyc
+g*.pyc
 *.swp
 .idea
 *.iml

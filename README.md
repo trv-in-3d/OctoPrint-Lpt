@@ -13,4 +13,4 @@ or manually using this URL:
 
 ## Configuration
 
-**Cstomize** View the plug-in settings to customize the behaviour.
+**Customize** View the plug-in settings to customize the behaviour.
