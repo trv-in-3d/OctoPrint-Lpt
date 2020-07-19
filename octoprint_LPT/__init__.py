@@ -27,6 +27,11 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 			lastt = "255"
 		)
 
+	def get_template_vars(Self):
+		return dict(lastt=self._settings.get("lastt"))
+
+
+
 	##~~ AssetPlugin mixin
 
 	def get_assets(self):
