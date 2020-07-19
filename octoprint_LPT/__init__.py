@@ -29,9 +29,16 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 
 	def get_template_vars(self):
 		return dict(
-			lastt=self._settings.get(["lastt"]),
 			deltat=self._settings.get(["deltat"])
 		)
+
+
+
+	def get_template_configs(self):
+		return [
+		   dict(type="navbar", custom_bindings=False),
+		   dict(type="settings", custom_bindings=False)
+		]
 
 
 
