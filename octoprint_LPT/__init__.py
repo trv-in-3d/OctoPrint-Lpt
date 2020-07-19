@@ -23,7 +23,7 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 
 	def get_settings_defaults(self):
 		return dict(
-			deltat = "6"
+			deltat = "6",
 			lastt = "255"
 		)
 
