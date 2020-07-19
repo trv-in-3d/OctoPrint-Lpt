@@ -24,14 +24,14 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 	def get_settings_defaults(self):
 		return dict(
 			deltat = "6",
-			lastt = "255"
+			lastt = "255",
+			purgecode = "X"
 		)
 
-	def get_template_vars(self):
-		return dict(
-			deltat=self._settings.get(["lastt"])
-		)
-
+ 	# def get_template_vars(self):
+	# 	return dict(
+	# 		deltat=self._settings.get(["lastt"])
+	# 	) 
 
 
 	def get_template_configs(self):
