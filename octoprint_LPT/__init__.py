@@ -29,7 +29,7 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 
 	def get_template_vars(self):
 		return dict(
-			deltat=self._settings.get(["deltat"])
+			deltat=self._settings.get(["lastt"])
 		)
 
 
