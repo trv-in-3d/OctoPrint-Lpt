@@ -23,7 +23,8 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 
 	def get_settings_defaults(self):
 		return dict(
-			# put your plugin's default settings here
+			deltat = "6"
+			lastt = "255"
 		)
 
 	##~~ AssetPlugin mixin
@@ -71,6 +72,7 @@ __plugin_name__ = "LPT Plugin"
 #__plugin_pythoncompat__ = ">=2.7,<3" # only python 2
 #__plugin_pythoncompat__ = ">=3,<4" # only python 3
 __plugin_pythoncompat__ = ">=2.7,<4" # python 2 and 3
+
 
 def __plugin_load__():
 	global __plugin_implementation__
