@@ -40,7 +40,7 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 		   dict(type="settings", custom_bindings=False),
 		   dict(type="sidebar", custom_bindings=False)
 		]
-s
+
 
 
 	##~~ AssetPlugin mixin
