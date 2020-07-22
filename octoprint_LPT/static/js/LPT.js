@@ -19,11 +19,15 @@ $(function() {
      * Please see http://docs.octoprint.org/en/master/plugins/viewmodels.html#registering-custom-viewmodels for more details
      * and a full list of the available options.
      */
-    OCTOPRINT_VIEWMODELS.push({
+
+    
+
+
+     OCTOPRINT_VIEWMODELS.push({
         construct: LptViewModel,
         // ViewModels your plugin depends on, e.g. loginStateViewModel, settingsViewModel, ...
-        dependencies: [ /* "loginStateViewModel", "settingsViewModel" */ ],
+        dependencies: [ "sidebarViewModel", "settingsViewModel"  ],
         // Elements to bind to, e.g. #settings_plugin_LPT, #tab_plugin_LPT, ...
-        elements: [ /* ... */ ]
+        elements: [ "#sidebar_plugin_LPT"  /* ... */ ]
     });
 });
