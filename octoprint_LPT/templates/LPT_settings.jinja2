@@ -1,21 +1,25 @@
+<h3>{{ _('Last Print Temp') }}</h3>
 <form class="form-horizontal">
     <div class="control-group">
-        <label class="control-label">Delta T</label>
+        <label class="control-label">Delta T  </label>
         <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.LPT.deltat">
+            <span class="input-append">
+                <input type="number" step="any" min="0" max="30" class="input-mini text-left" data-bind="value: settings.plugins.LPT.deltat">
+                <span class="add-on"> deg C</span>
+            </span>
         </div>
-
+    </div>
+    <div class="control-group">
         <label class="control-label">Last Print Temp</label>
         <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.LPT.lastt">
+            <input enabled="false" type="text" class="input-mini text-left" data-bind="value: settings.plugins.LPT.lastt">
         </div>
-        
+    </div>
+    <div class="control-group">    
         <label class="control-label">Purge Code</label>
         <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.LPT.purgecode">
+            <textarea rows="6" class="block" data-bind="value: settings.plugins.LPT.purgecode"></textarea>
+            <small>{{_('Use the following placeholders in your code:  <br>@lastt - temp of last print job<br>@tool - first tool number used in new job<br>@firstt - temp of hotend at first extrusion in new job') }}</small>       
         </div>
-        
-
-
     </div>
 </form>

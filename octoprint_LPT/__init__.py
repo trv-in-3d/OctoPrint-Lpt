@@ -24,9 +24,16 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 		self.deltat = None
 		self.temp_data = dict(tools=dict(), bed=None)
 
+	def on_settings_save(self, data):
+		old_deltat = self._settings.get_int(["deltat"])
+		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+		new_deltat = self._settings.get_int(["deltat"])
+		self._logger.debug("Settings saved.   Old Deltat={old_deltat}, New DeltaT={new_deltat}".format(**locals()))
 
 	def on_after_startup(self):
 		self._logger.info("OctoPrint-LPT has been loaded.  Wow.")
+		checkdeltat = self._settings.get_int(["deltat"])
+		self._logger.debug("Current deltat setting: {checkdeltat}".format(**locals()))
 
 	def get_settings_defaults(self):
 		return dict(
@@ -38,7 +45,7 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 	def get_template_configs(self):
 		return [
 			dict(type="settings", custom_bindings=False),
-			dict(type="sidebar" , template="LPT_sidebar.jinja2")
+			dict(type="sidebar" , custom_bindings=True, template="LPT_sidebar.jinja2")
 		]
 	##~~ AssetPlugin mixin
 
