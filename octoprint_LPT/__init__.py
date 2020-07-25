@@ -114,7 +114,7 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 		self._logger.debug("Temperatures: %r", temps)
 		return temps
 
-    def find_print_temps(self, comm_instance, script_type, script_name, *args, **kwargs):
+	def find_print_temps(self, comm_instance, script_type, script_name, *args, **kwargs):
 		if not script_type == "gcode":
 			return None
 
