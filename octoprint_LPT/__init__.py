@@ -10,11 +10,12 @@ from __future__ import absolute_import
 # Take a look at the documentation on what other plugin mixins are available.
 
 import octoprint.plugin
+import octoprint.plugins
 
 class LptPlugin(octoprint.plugin.StartupPlugin,
 				octoprint.plugin.SettingsPlugin,
-                octoprint.plugin.AssetPlugin,
-                octoprint.plugin.TemplatePlugin):
+				octoprint.plugin.AssetPlugin,
+				octoprint.plugin.TemplatePlugin):
 
 	##~~ SettingsPlugin mixin
 
@@ -28,21 +29,12 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 			purgecode = "X"
 		)
 
- 	# def get_template_vars(self):
-	# 	return dict(
-	# 		deltat=self._settings.get(["lastt"])
-	# 	) 
-
-
 	def get_template_configs(self):
 		return [
-		   dict(type="navbar"  , custom_bindings=False),
-		   dict(type="settings", custom_bindings=False),
-		   dict(type="sidebar" , custom_bindings=False)
+			dict(type="navbar"  , custom_bindings=False),
+			dict(type="settings", custom_bindings=False),
+			dict(type="sidebar" , custom_bindings=False)
 		]
-
-
-
 	##~~ AssetPlugin mixin
 
 	def get_assets(self):
@@ -132,8 +124,8 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 
 			if current_data['job']['file']['origin'] == octoprint.filemanager.FileDestinations.LOCAL:
 				self.temp_data = self.get_temps_from_file(current_data['job']['file']['path'])
-
 		return (None, None, self.temp_data)
+
 
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
