@@ -76,12 +76,12 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 			)
 		)
 
-    def get_temps_from_file(self, selected_file):
-        path_on_disk = octoprint.server.fileManager.path_on_disk(octoprint.filemanager.FileDestinations.LOCAL, selected_file)
+	def get_temps_from_file(self, selected_file):
+		path_on_disk = octoprint.server.fileManager.path_on_disk(octoprint.filemanager.FileDestinations.LOCAL, selected_file)
 
-        temps = dict(tools=dict(), bed=None)
-        currentToolNum = 0
-        lineNum = 0
+		temps = dict(tools=dict(), bed=None)
+		currentToolNum = 0
+		lineNum = 0
         self._logger.debug("Parsing g-code file, Path=%s", path_on_disk)
         with open(path_on_disk, "r") as file:
             for line in file:
@@ -133,7 +133,7 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
             if current_data['job']['file']['origin'] == octoprint.filemanager.FileDestinations.LOCAL:
                 self.temp_data = self.get_temps_from_file(current_data['job']['file']['path'])
 
-        return (None, None, self.temp_data)
+		return (None, None, self.temp_data)
 
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
