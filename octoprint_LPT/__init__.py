@@ -19,6 +19,12 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 
 	##~~ SettingsPlugin mixin
 
+	def __init__(self):
+		self.lastt = None
+		self.deltat = None
+		self.temp_data = dict(tools=dict(), bed=None)
+
+
 	def on_after_startup(self):
 		self._logger.info("OctoPrint-LPT has been loaded.  Wow.")
 
@@ -114,7 +120,6 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 		return temps
 
 	def find_print_temps(self, comm_instance, script_type, script_name, *args, **kwargs):
-		temp_data = dict(tools=dict(), bed=None)
 		if not script_type == "gcode":
 			return None
 
