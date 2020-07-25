@@ -31,7 +31,6 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 
 	def get_template_configs(self):
 		return [
-			# dict(type="navbar"  , custom_bindings=False),
 			dict(type="settings", custom_bindings=False),
 			dict(type="sidebar" , custom_bindings=False)
 		]
@@ -115,6 +114,7 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 		return temps
 
 	def find_print_temps(self, comm_instance, script_type, script_name, *args, **kwargs):
+		temp_data = dict(tools=dict(), bed=None)
 		if not script_type == "gcode":
 			return None
 
