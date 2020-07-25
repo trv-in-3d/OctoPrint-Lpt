@@ -38,7 +38,7 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 	def get_template_configs(self):
 		return [
 			dict(type="settings", custom_bindings=False),
-			dict(type="sidebar" , custom_bindings=False)
+			dict(type="sidebar" , template="LPT_sidebar.jinja2")
 		]
 	##~~ AssetPlugin mixin
 
