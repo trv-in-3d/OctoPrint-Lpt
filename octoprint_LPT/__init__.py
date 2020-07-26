@@ -10,11 +10,12 @@ from __future__ import absolute_import
 # Take a look at the documentation on what other plugin mixins are available.
 
 import octoprint.plugin
+import octoprint.plugins
 
 class LptPlugin(octoprint.plugin.StartupPlugin,
 				octoprint.plugin.SettingsPlugin,
-                octoprint.plugin.AssetPlugin,
-                octoprint.plugin.TemplatePlugin):
+				octoprint.plugin.AssetPlugin,
+				octoprint.plugin.TemplatePlugin):
 
 	##~~ SettingsPlugin mixin
 
@@ -28,21 +29,12 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 			purgecode = "X"
 		)
 
- 	# def get_template_vars(self):
-	# 	return dict(
-	# 		deltat=self._settings.get(["lastt"])
-	# 	) 
-
-
 	def get_template_configs(self):
 		return [
-		   dict(type="navbar"  , custom_bindings=False),
-		   dict(type="settings", custom_bindings=False),
-		   dict(type="sidebar" , custom_bindings=False)
+			dict(type="navbar"  , custom_bindings=False),
+			dict(type="settings", custom_bindings=False),
+			dict(type="sidebar" , custom_bindings=False)
 		]
-
-
-
 	##~~ AssetPlugin mixin
 
 	def get_assets(self):
@@ -76,64 +68,63 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 			)
 		)
 
-    def get_temps_from_file(self, selected_file):
-        path_on_disk = octoprint.server.fileManager.path_on_disk(octoprint.filemanager.FileDestinations.LOCAL, selected_file)
+	def get_temps_from_file(self, selected_file):
+		path_on_disk = octoprint.server.fileManager.path_on_disk(octoprint.filemanager.FileDestinations.LOCAL, selected_file)
 
-        temps = dict(tools=dict(), bed=None)
-        currentToolNum = 0
-        lineNum = 0
-        self._logger.debug("Parsing g-code file, Path=%s", path_on_disk)
-        with open(path_on_disk, "r") as file:
-            for line in file:
-                lineNum += 1
+		temps = dict(tools=dict(), bed=None)
+		currentToolNum = 0
+		lineNum = 0
+		self._logger.debug("Parsing g-code file, Path=%s", path_on_disk)
+		with open(path_on_disk, "r") as file:
+			for line in file:
+				lineNum += 1
+				
+				gcode = octoprint.util.comm.gcode_command_for_cmd(line)
+				extrusionMatch = octoprint.util.comm.regexes_parameters["floatE"].search(line)
+				if gcode == "G1" and extrusionMatch:
+					self._logger.debug("Line %d: Detected first extrusion. Read complete.", lineNum)
+					break
 
-                gcode = octoprint.util.comm.gcode_command_for_cmd(line)
-                extrusionMatch = octoprint.util.comm.regexes_parameters["floatE"].search(line)
-                if gcode == "G1" and extrusionMatch:
-                    self._logger.debug("Line %d: Detected first extrusion. Read complete.", lineNum)
-                    break
+				if gcode and gcode.startswith("T"):
+					toolMatch = octoprint.util.comm.regexes_parameters["intT"].search(line)
+					if toolMatch:
+						self._logger.debug("Line %d: Detected SetTool. Line=%s", lineNum, line)
+						currentToolNum = int(toolMatch.group("value"))
 
-                if gcode and gcode.startswith("T"):
-                    toolMatch = octoprint.util.comm.regexes_parameters["intT"].search(line)
-                    if toolMatch:
-                        self._logger.debug("Line %d: Detected SetTool. Line=%s", lineNum, line)
-                        currentToolNum = int(toolMatch.group("value"))
+				if gcode in ('M104', 'M109', 'M140', 'M190'):
+					self._logger.debug("Line %d: Detected SetTemp. Line=%s", lineNum, line)
 
-                if gcode in ('M104', 'M109', 'M140', 'M190'):
-                    self._logger.debug("Line %d: Detected SetTemp. Line=%s", lineNum, line)
+					toolMatch = octoprint.util.comm.regexes_parameters["intT"].search(line)
+					if toolMatch:
+						toolNum = int(toolMatch.group("value"))
+					else:
+						toolNum = currentToolNum
 
-                    toolMatch = octoprint.util.comm.regexes_parameters["intT"].search(line)
-                    if toolMatch:
-                        toolNum = int(toolMatch.group("value"))
-                    else:
-                        toolNum = currentToolNum
+					tempMatch = octoprint.util.comm.regexes_parameters["floatS"].search(line)
+					if tempMatch:
+						temp = int(tempMatch.group("value"))
 
-                    tempMatch = octoprint.util.comm.regexes_parameters["floatS"].search(line)
-                    if tempMatch:
-                        temp = int(tempMatch.group("value"))
+						if gcode in ("M104", "M109"):
+							self._logger.debug("Line %d: Tool %s = %s", lineNum, toolNum, temp)
+							temps["tools"][toolNum] = temp
+						elif gcode in ("M140", "M190"):
+							self._logger.debug("Line %d: Bed = %s", lineNum, temp)
+							temps["bed"] = temp
 
-                        if gcode in ("M104", "M109"):
-                            self._logger.debug("Line %d: Tool %s = %s", lineNum, toolNum, temp)
-                            temps["tools"][toolNum] = temp
-                        elif gcode in ("M140", "M190"):
-                            self._logger.debug("Line %d: Bed = %s", lineNum, temp)
-                            temps["bed"] = temp
+		self._logger.debug("Temperatures: %r", temps)
+		return temps
 
-        self._logger.debug("Temperatures: %r", temps)
-        return temps
+	def find_print_temps(self, comm_instance, script_type, script_name, *args, **kwargs):
+		if not script_type == "gcode":
+			return None
 
+		if script_name == 'beforePrintStarted':
+			current_data = self._printer.get_current_data()
 
-    def find_print_temps(self, comm_instance, script_type, script_name, *args, **kwargs):
-        if not script_type == "gcode":
-            return None
+			if current_data['job']['file']['origin'] == octoprint.filemanager.FileDestinations.LOCAL:
+				self.temp_data = self.get_temps_from_file(current_data['job']['file']['path'])
+		return (None, None, self.temp_data)
 
-        if script_name == 'beforePrintStarted':
-            current_data = self._printer.get_current_data()
-
-            if current_data['job']['file']['origin'] == octoprint.filemanager.FileDestinations.LOCAL:
-                self.temp_data = self.get_temps_from_file(current_data['job']['file']['path'])
-
-        return (None, None, self.temp_data)
 
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
