@@ -35,7 +35,7 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 		if not old_deltat==new_deltat:
 			self._logger.debug("Settings saved.   Old Deltat={old_deltat}, New DeltaT={new_deltat}".format(**locals()))
 		if not old_lptactive==new_lptactive:
-			self._logger.debug("Settings saved.  LPT active stauts changed from={old_lptactive}, to={new_lptactive}".format(**locals()))
+			self._logger.debug("Settings saved.  Purge stauts changed from={old_lptactive}, to={new_lptactive}".format(**locals()))
 
 	def on_after_startup(self):
 		self._logger.info("OctoPrint-LPT has been loaded.  Wow.")
@@ -142,12 +142,18 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 	def find_print_temps(self, comm_instance, script_type, script_name, *args, **kwargs):
 		if not script_type == "gcode":
 			return None
+		
+		self.temp_data = None
 
 		if script_name == 'beforePrintStarted':
-			current_data = self._printer.get_current_data()
+			if not self._settings.get(["lptactive"]):
+				self._logger.debug("Purge disabled.  Skipping checks")
+			else:
+				self._logger.debug("Purge enabled.  Checking...")
+				current_data = self._printer.get_current_data()
 
-			if current_data['job']['file']['origin'] == octoprint.filemanager.FileDestinations.LOCAL:
-				self.temp_data = self.get_temps_from_file(current_data['job']['file']['path'])
+				if current_data['job']['file']['origin'] == octoprint.filemanager.FileDestinations.LOCAL:
+					self.temp_data = self.get_temps_from_file(current_data['job']['file']['path'])
 		return (None, None, self.temp_data)
 
 	def logtemps(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
