@@ -1,6 +1,12 @@
 <h3>{{ _('Last Print Temp') }}</h3>
 <form class="form-horizontal">
     <div class="control-group">
+        <label class="control-label">Plugin Enableded</label>
+        <div class="controls">
+            <input type="checkbox" data-bind="checked: setting.plugins.LPT.lptactive" id="settings-lptactive">
+        </div>
+    </div>
+    <div class="control-group">
         <label class="control-label">Delta T  </label>
         <div class="controls">
             <span class="input-append">

@@ -10,8 +10,6 @@ from __future__ import absolute_import
 # Take a look at the documentation on what other plugin mixins are available.
 
 import re
-
-
 import octoprint.plugin
 import octoprint.plugins
 
@@ -26,15 +24,22 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 		self.lastt = None
 		self.deltat = None
 		self.temp_data = dict(tools=dict(), bed=None)
+		self.lptactive = None
 
 	def on_settings_save(self, data):
+		old_lptactive = self._settings.get(["lptactive"])
 		old_deltat = self._settings.get_int(["deltat"])
 		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+		new_lptactive = self._settings.get(["lptactive"])
 		new_deltat = self._settings.get_int(["deltat"])
 		self._logger.debug("Settings saved.   Old Deltat={old_deltat}, New DeltaT={new_deltat}".format(**locals()))
+		if (old_lptactive <> new_lptactive)
+			self._logger.debug("LPT active stauts changed from={old_lptactive}, to={new_lptactive}".format(**locals()))
 
 	def on_after_startup(self):
 		self._logger.info("OctoPrint-LPT has been loaded.  Wow.")
+		checkactive = self._settings.get(["lptactive"])
+		self._logger.debug("LPT purge enabled: {checkactive}".format(**locals()))
 		checkdeltat = self._settings.get_int(["deltat"])
 		self._logger.debug("Current deltat setting: {checkdeltat}".format(**locals()))
 		checklastt = self._settings.get_int(["lastt"])
@@ -45,7 +50,8 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 		return dict(
 			deltat = "6",
 			lastt = "180",
-			purgecode = "X"
+			purgecode = "X",
+			lptactive = False
 		)
 
 	def get_template_configs(self):
@@ -144,12 +150,13 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 		return (None, None, self.temp_data)
 
 	def logtemps(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
+		# watch printed gcode and if there is a non-zero temp change store the new value as last printed temp.
 		if gcode and  (gcode == "M104" or gcode == "M109"):
 			self._logger.debug("Printed Temp [{gcode}]: {cmd}".format(**locals()))
 			foundtemp = re.match("M10[4|9]\s+S(\d+)",cmd).group(1)			
 			if foundtemp:
 				self._logger.debug("actual temp: {foundtemp}".format(**locals()))
-				if int(foundtemp) > 0 :
+				if (int(foundtemp) > 0 ):
 					self.lastt == foundtemp
 					# TO DO:     SAVE THIS value CHANGE.
 
