@@ -8,10 +8,11 @@ $(function() {
     function LptViewModel(parameters) {
         var self = this;
 
-        // assign the injected parameters, e.g.:
-        // self.loginStateViewModel = parameters[0];
-        // self.settingsViewModel = parameters[1];
 
+        // assign the injected parameters, e.g.:
+        self.settingsViewModel = parameters[0];
+        self.printerStateViewModel = parameters[1];
+       
         // TODO: Implement your plugin's view model here.
     }
 
@@ -21,13 +22,11 @@ $(function() {
      */
 
     
-
-
      OCTOPRINT_VIEWMODELS.push({
         construct: LptViewModel,
         // ViewModels your plugin depends on, e.g. loginStateViewModel, settingsViewModel, ...
-        dependencies: [ "sidebarViewModel", "settingsViewModel"  ],
+        dependencies: [ "settingsViewModel","printerStateViewModel"  ],
         // Elements to bind to, e.g. #settings_plugin_LPT, #tab_plugin_LPT, ...
-        elements: [ "#sidebar_plugin_LPT"  /* ... */ ]
+        elements: [ "#settings_plugin_LPT"  /* ... */ ]
     });
 });

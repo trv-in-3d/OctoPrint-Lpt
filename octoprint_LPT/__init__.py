@@ -9,6 +9,9 @@ from __future__ import absolute_import
 #
 # Take a look at the documentation on what other plugin mixins are available.
 
+import re
+
+
 import octoprint.plugin
 import octoprint.plugins
 
@@ -34,11 +37,14 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 		self._logger.info("OctoPrint-LPT has been loaded.  Wow.")
 		checkdeltat = self._settings.get_int(["deltat"])
 		self._logger.debug("Current deltat setting: {checkdeltat}".format(**locals()))
+		checklastt = self._settings.get_int(["lastt"])
+		self._logger.debug("Last printed temp setting: {checklastt}".format(**locals()))
+
 
 	def get_settings_defaults(self):
 		return dict(
 			deltat = "6",
-			lastt = "255",
+			lastt = "180",
 			purgecode = "X"
 		)
 
@@ -137,18 +143,19 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 				self.temp_data = self.get_temps_from_file(current_data['job']['file']['path'])
 		return (None, None, self.temp_data)
 
+	def logtemps(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
+		if gcode and  (gcode == "M104" or gcode == "M109"):
+			self._logger.debug("Printed Temp [{gcode}]: {cmd}".format(**locals()))
+			foundtemp = re.match("M10[4|9]\s+S(\d+)",cmd).group(1)			
+			if foundtemp:
+				self._logger.debug("actual temp: {foundtemp}".format(**locals()))
+				if int(foundtemp) > 0 :
+					self.lastt == foundtemp
+					# TO DO:     SAVE THIS value CHANGE.
 
 
-# If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
-# ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
-# can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
 __plugin_name__ = "LPT Plugin"
 
-# Starting with OctoPrint 1.4.0 OctoPrint will also support to run under Python 3 in addition to the deprecated
-# Python 2. New plugins should make sure to run under both versions for now. Uncomment one of the following
-# compatibility flags according to what Python versions your plugin supports!
-#__plugin_pythoncompat__ = ">=2.7,<3" # only python 2
-#__plugin_pythoncompat__ = ">=3,<4" # only python 3
 __plugin_pythoncompat__ = ">=2.7,<4" # python 2 and 3
 
 
@@ -159,6 +166,7 @@ def __plugin_load__():
 	global __plugin_hooks__
 	__plugin_hooks__ = {
 		"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
-		"octoprint.comm.protocol.scripts": __plugin_implementation__.find_print_temps
+		"octoprint.comm.protocol.scripts": __plugin_implementation__.find_print_temps,
+		"octoprint.comm.protocol.gcode.sent": __plugin_implementation__.logtemps
 	}
 
