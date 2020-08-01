@@ -32,9 +32,10 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 		new_lptactive = self._settings.get(["lptactive"])
 		new_deltat = self._settings.get_int(["deltat"])
-		self._logger.debug("Settings saved.   Old Deltat={old_deltat}, New DeltaT={new_deltat}".format(**locals()))
-		if (old_lptactive <> new_lptactive)
-			self._logger.debug("LPT active stauts changed from={old_lptactive}, to={new_lptactive}".format(**locals()))
+		if not old_deltat==new_deltat:
+			self._logger.debug("Settings saved.   Old Deltat={old_deltat}, New DeltaT={new_deltat}".format(**locals()))
+		if not old_lptactive==new_lptactive:
+			self._logger.debug("Settings saved.  LPT active stauts changed from={old_lptactive}, to={new_lptactive}".format(**locals()))
 
 	def on_after_startup(self):
 		self._logger.info("OctoPrint-LPT has been loaded.  Wow.")
@@ -50,7 +51,7 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 		return dict(
 			deltat = "6",
 			lastt = "180",
-			purgecode = "X",
+			purgecode = "M109 S@lastt ; Wait for hotend to reach last (higher) print temp \r\nT@tool ; select tool\r\nM702 ; unload filament\r\nM109 R@firstt ; wait for hotend to cool to first temp",
 			lptactive = False
 		)
 
