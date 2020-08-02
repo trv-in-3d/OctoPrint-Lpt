@@ -10,21 +10,61 @@ from __future__ import absolute_import
 # Take a look at the documentation on what other plugin mixins are available.
 
 import re
+import flask
 import octoprint.plugin
 import octoprint.plugins
+import textwrap
+
+from octoprint.events import Events
+
 
 class LptPlugin(octoprint.plugin.StartupPlugin,
 				octoprint.plugin.SettingsPlugin,
 				octoprint.plugin.AssetPlugin,
-				octoprint.plugin.TemplatePlugin):
+				octoprint.plugin.TemplatePlugin,
+				octoprint.plugin.EventHandlerPlugin):
 
 	##~~ SettingsPlugin mixin
 
 	def __init__(self):
 		self.lastt = None
 		self.deltat = None
-		self.temp_data = dict(tools=dict(), bed=None)
+		self.temp_data = dict(tools=dict(), bed=None, firsttool=None)
 		self.lptactive = None
+		self.default_purge_script = textwrap.dedent(
+		"""
+		M109 S{{ plugins.LPT.lastt }} ; Wait for hotend to reach last (higher) print temp
+		
+		;set tools to last (higher) print temp
+		{% for tool, temp in plugins.LPT.tools.items %}
+		M104 T{{ tool }} S{{ temp }} 
+		{% endfor %}
+		
+		; wait for tools
+		{% for tool, temp in plugins.LPT.tools.items %}
+		M109 T{{ tool }} S{{ temp }} 
+		{% endfor %}
+		
+		
+		T{{ plugins.LPT.currenttool }} ; select tool - performs load
+		M702 ; unload filament
+
+		{% for tool in plugins.LPT.tools.items %}
+		M104 T{{ tool }} S{{plugins.LPT.firstt }} 
+		{% endfor %}
+
+		{% for tool in plugins.LPT.tools.items %}
+		M10R T{{ tool }} R{{plugins.LPT.firstt }} 
+		{% endfor %}
+
+		""")
+
+	def on_settings_initalized(self):
+		scripts = self._settings.listScripts("gcode")
+		if not "snippets/doLPTPurge" in scripts:
+			script = self.default_purge_script
+			self._settings.saveScript("gcode","snippets/doLPTPurge",u'' + script.replace("\r\n","\n").replace("\r","\n"))
+
 
 	def on_settings_save(self, data):
 		old_lptactive = self._settings.get(["lptactive"])
@@ -58,9 +98,13 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 	def get_template_configs(self):
 		return [
 			dict(type="settings", custom_bindings=False),
-			dict(type="sidebar" , custom_bindings=True, template="LPT_sidebar.jinja2")
+			dict(type="sidebar" , icon="thermometer-half", custom_bindings=True, template="LPT_sidebar.jinja2")
 		]
 	##~~ AssetPlugin mixin
+
+	def get_template_vars(self):
+		return dict(lastt=self._settings.get(["lastt"]))
+
 
 	def get_assets(self):
 		# Define your plugin's asset files to automatically include in the
@@ -93,10 +137,26 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 			)
 		)
 
+
+	def on_event(self, event, payload):
+		if event == Events.PRINTER_STATE_CHANGED:
+			self.on_printer_state_changed(payload)
+
+	def on_printer_state_changed(self, payload):
+		if payload['state_id'] == "FINISHING":
+			if self.lastPrintState == "PRINTING":
+				self._logger.debug("State changed to finishing - saving lastt")
+				# save the settings
+				# TO DO - save settings
+
+		# update last print state
+		self.lastPrintState = payload['state_id']
+
+
 	def get_temps_from_file(self, selected_file):
 		path_on_disk = octoprint.server.fileManager.path_on_disk(octoprint.filemanager.FileDestinations.LOCAL, selected_file)
 
-		temps = dict(tools=dict(), bed=None)
+		temps = dict(tools=dict(), bed=None, firsttool=None)
 		currentToolNum = 0
 		lineNum = 0
 		self._logger.debug("Parsing g-code file, Path=%s", path_on_disk)
@@ -125,19 +185,38 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 					else:
 						toolNum = currentToolNum
 
-					tempMatch = octoprint.util.comm.regexes_parameters["floatS"].search(line)
-					if tempMatch:
-						temp = int(tempMatch.group("value"))
-
+					tempMatchs = octoprint.util.comm.regexes_parameters["floatS"].search(line)
+					tempMatchr = octoprint.util.comm.regexes_parameters["floatR"].search(line)
+					if tempMatchs:
+						temp = int(tempMatchs.group("value"))
+					if tempMatchr:
+						temp = int(tempMatchr.group("value"))
+					if (tempMatchs or tempMatchr):
 						if gcode in ("M104", "M109"):
 							self._logger.debug("Line %d: Tool %s = %s", lineNum, toolNum, temp)
 							temps["tools"][toolNum] = temp
 						elif gcode in ("M140", "M190"):
 							self._logger.debug("Line %d: Bed = %s", lineNum, temp)
 							temps["bed"] = temp
-
-		self._logger.debug("Temperatures: %r", temps)
+		
+		temps["firsttool"] = currentToolNum
+		self._logger.debug("Temperature data: %r", temps)
 		return temps
+
+	def run_purge(purgefirsttemp, purgelasttemp, purgetool):
+		# get our code block from settings.
+		purgecode = self._settings.get(["purgecode"])
+		
+		#replace firsttemp
+
+
+		#replace lasttemp
+
+
+		#replace tool
+
+
+		#inject final code into script
 
 	def find_print_temps(self, comm_instance, script_type, script_name, *args, **kwargs):
 		if not script_type == "gcode":
@@ -154,18 +233,27 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 
 				if current_data['job']['file']['origin'] == octoprint.filemanager.FileDestinations.LOCAL:
 					self.temp_data = self.get_temps_from_file(current_data['job']['file']['path'])
+
+				deltat = self._settings.get_int(["deltat"])
+				lastt = self._settings.get_int(["lastt"])
+				tool = self.temp_data["firsttool"]
+				firsttemp = int(self.temp_data["tools"][tool])
+				if (firsttemp < (lastt - deltat)):
+					self._logger.debug("**** LPT PURGE NEEDED ****")
+					result = self.run_purge(firsttemp,lastt,tool)
+
 		return (None, None, self.temp_data)
 
-	def logtemps(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
+	def monitorprint(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
 		# watch printed gcode and if there is a non-zero temp change store the new value as last printed temp.
 		if gcode and  (gcode == "M104" or gcode == "M109"):
 			self._logger.debug("Printed Temp [{gcode}]: {cmd}".format(**locals()))
-			foundtemp = re.match("M10[4|9]\s+S(\d+)",cmd).group(1)			
+			foundtemp = re.match("M10[4|9]\s+[S|R](\d+)",cmd).group(1)			
 			if foundtemp:
-				self._logger.debug("actual temp: {foundtemp}".format(**locals()))
 				if (int(foundtemp) > 0 ):
-					self.lastt == foundtemp
-					# TO DO:     SAVE THIS value CHANGE.
+					self._logger.debug("Saving actual temp string: {foundtemp}".format(**locals()))
+					#self.lastt == foundtemp
+					self._settings.set(["lastt"],foundtemp)
 
 
 __plugin_name__ = "LPT Plugin"
@@ -181,6 +269,6 @@ def __plugin_load__():
 	__plugin_hooks__ = {
 		"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
 		"octoprint.comm.protocol.scripts": __plugin_implementation__.find_print_temps,
-		"octoprint.comm.protocol.gcode.sent": __plugin_implementation__.logtemps
+		"octoprint.comm.protocol.gcode.sent": __plugin_implementation__.monitorprint
 	}
 
