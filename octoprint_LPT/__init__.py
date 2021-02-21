@@ -203,7 +203,7 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 		self._logger.debug("Temperature data: %r", temps)
 		return temps
 
-	def run_purge(purgefirsttemp, purgelasttemp, purgetool):
+	def run_purge(self,purgefirsttemp, purgelasttemp, purgetool):
 		# get our code block from settings.
 		purgecode = self._settings.get(["purgecode"])
 		
