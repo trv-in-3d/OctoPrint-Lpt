@@ -31,58 +31,82 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 		self.deltat = None
 		self.temp_data = dict(tools=dict(), bed=None, firsttool=None)
 		self.lptactive = None
+		self.purgeenabled = None
 		self.default_purge_script = textwrap.dedent(
 		"""
-		M109 S{{ plugins.LPT.lastt }} ; Wait for hotend to reach last (higher) print temp
-		
-		;set tools to last (higher) print temp
-		{% for tool, temp in plugins.LPT.tools.items %}
-		M104 T{{ tool }} S{{ temp }} 
-		{% endfor %}
-		
-		; wait for tools
-		{% for tool, temp in plugins.LPT.tools.items %}
-		M109 T{{ tool }} S{{ temp }} 
-		{% endfor %}
-		
-		
-		T{{ plugins.LPT.currenttool }} ; select tool - performs load
+		M109 T{{ plugins.LPT.firsttool }} S{{ plugins.LPT.lastt }} 
+		T{{ plugins.LPT.firsttool }} ;select tool - performs load
 		M702 ; unload filament
+		M109 T{{ plugins.LPT.firsttool }} R{{ plugins.LPT.firstt }} ;go back to first temp
+	
+		""") 		
+		# M109 S{{ plugins.LPT.lastt }} ; Wait for hotend to reach last (higher) print temp
+		
+		# ;set tools to last (higher) print temp
+		# {% for tool, temp in plugins.LPT.tools.items %}
+		# M104 T{{ tool }} S{{ temp }} 
+		# {% endfor %}
+		
+		# ; wait for tools
+		# {% for tool, temp in plugins.LPT.tools.items %}
+		# M109 T{{ tool }} S{{ temp }} 
+		# {% endfor %}
+		
+		
+		# T{{ plugins.LPT.currenttool }} ; select tool - performs load
+		# M702 ; unload filament
 
-		{% for tool in plugins.LPT.tools.items %}
-		M104 T{{ tool }} S{{plugins.LPT.firstt }} 
-		{% endfor %}
+		# {% for tool in plugins.LPT.tools.items %}
+		# M104 T{{ tool }} S{{plugins.LPT.firstt }} 
+		# {% endfor %}
 
-		{% for tool in plugins.LPT.tools.items %}
-		M10R T{{ tool }} R{{plugins.LPT.firstt }} 
-		{% endfor %}
+		# {% for tool in plugins.LPT.tools.items %}
+		# M10R T{{ tool }} R{{plugins.LPT.firstt }} 
+		# {% endfor %}
 
-		""")
+		# """)
 
 	def on_settings_initalized(self):
+		self._logger.debug('Initalizing settings')
 		scripts = self._settings.listScripts("gcode")
 		if not "snippets/doLPTPurge" in scripts:
+			self._logger.debug('Saving doLPTPurge snippet')
 			script = self.default_purge_script
-			self._settings.saveScript("gcode","snippets/doLPTPurge",u'' + script.replace("\r\n","\n").replace("\r","\n"))
+			self._settings.saveScript("gcode","snippets/doLPTPurge", u'' + script.replace("\r\n","\n").replace("\r","\n"))
 
 
 	def on_settings_save(self, data):
 		old_lptactive = self._settings.get(["lptactive"])
+		old_purgeenabled = self._settings.get(["purgeenabled"])
 		old_deltat = self._settings.get_int(["deltat"])
+		old_lastt = self._settings.get_int(["lastt"])
 		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+		new_purgeenabled = self._settings.get(["purgeenabled"])
 		new_lptactive = self._settings.get(["lptactive"])
 		new_deltat = self._settings.get_int(["deltat"])
+		new_lastt = self.settings.get_int(["lastt"])
 		if not old_deltat==new_deltat:
-			self._logger.debug("Settings saved.   Old Deltat={old_deltat}, New DeltaT={new_deltat}".format(**locals()))
+			self._logger.debug("Settings saved.   Old deltaT={old_deltat}, New deltaT={new_deltat}".format(**locals()))
 		if not old_lptactive==new_lptactive:
-			self._logger.debug("Settings saved.  Purge stauts changed from={old_lptactive}, to={new_lptactive}".format(**locals()))
+			self._logger.debug("Settings saved.  Active stauts changed from={old_lptactive}, to={new_lptactive}".format(**locals()))
+		if not old_purgeenabled==new_purgeenabled:
+			self._logger.debug("Settings Saved.  Purge status changed from {old_purgeenabled}, to={new_purgeenabled}".format(**locals()))
+		if not old_lastt==new_lastt:
+			self._logger.debug("Settings Saved.  Last temp value changed from {old_last}, to={new_lastt}".format(**locals()))
+
 
 	def on_after_startup(self):
 		self._logger.info("OctoPrint-LPT has been loaded.  Wow.")
+		
 		checkactive = self._settings.get(["lptactive"])
-		self._logger.debug("LPT purge enabled: {checkactive}".format(**locals()))
+		self._logger.debug("LPT active: {checkactive}".format(**locals()))
+		
+		checkpurge = self._settings.get(["purgeenabled"])
+		self._logger.debug("Purge enabled: {checkpurge}".format(**locals()))
+		
 		checkdeltat = self._settings.get_int(["deltat"])
-		self._logger.debug("Current deltat setting: {checkdeltat}".format(**locals()))
+		self._logger.debug("Current deltaT setting: {checkdeltat}".format(**locals()))
+		
 		checklastt = self._settings.get_int(["lastt"])
 		self._logger.debug("Last printed temp setting: {checklastt}".format(**locals()))
 
@@ -91,8 +115,9 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 		return dict(
 			deltat = "6",
 			lastt = "180",
+			purgeenabled = False,
 			purgecode = "M109 S@lastt ; Wait for hotend to reach last (higher) print temp \r\nT@tool ; select tool\r\nM702 ; unload filament\r\nM109 R@firstt ; wait for hotend to cool to first temp",
-			lptactive = False
+			lptactive = True
 		)
 
 	def get_template_configs(self):
@@ -100,11 +125,15 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 			dict(type="settings", custom_bindings=False),
 			dict(type="sidebar" , icon="thermometer-half", custom_bindings=True, template="LPT_sidebar.jinja2")
 		]
-	##~~ AssetPlugin mixin
 
 	def get_template_vars(self):
-		return dict(lastt=self._settings.get(["lastt"]))
+		return 	dict(
+			lptactive=self._settings.get(["lptactive"]),
+			lastt=self._settings.get(["lastt"]),
+			purgeenabled=self._settings.get(["purgeenabled"])
+		)
 
+	##~~ AssetPlugin mixin
 
 	def get_assets(self):
 		# Define your plugin's asset files to automatically include in the
@@ -203,7 +232,7 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 		self._logger.debug("Temperature data: %r", temps)
 		return temps
 
-	def run_purge(purgefirsttemp, purgelasttemp, purgetool):
+	def run_purge(self,purgefirsttemp, purgelasttemp, purgetool):
 		# get our code block from settings.
 		purgecode = self._settings.get(["purgecode"])
 		
@@ -218,6 +247,7 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 
 		#inject final code into script
 
+
 	def find_print_temps(self, comm_instance, script_type, script_name, *args, **kwargs):
 		if not script_type == "gcode":
 			return None
@@ -226,9 +256,9 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 
 		if script_name == 'beforePrintStarted':
 			if not self._settings.get(["lptactive"]):
-				self._logger.debug("Purge disabled.  Skipping checks")
+				self._logger.debug("LPT disabled.  Skipping checks.")
 			else:
-				self._logger.debug("Purge enabled.  Checking...")
+				self._logger.debug("LPT enabled.  Checking...")
 				current_data = self._printer.get_current_data()
 
 				if current_data['job']['file']['origin'] == octoprint.filemanager.FileDestinations.LOCAL:
@@ -240,7 +270,16 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 				firsttemp = int(self.temp_data["tools"][tool])
 				if (firsttemp < (lastt - deltat)):
 					self._logger.debug("**** LPT PURGE NEEDED ****")
-					result = self.run_purge(firsttemp,lastt,tool)
+					if self.purgeenabled == True:
+						self._logger.debug("Starting purge")
+						# Run the Purge process
+						result = self.run_purge(firsttemp,lastt,tool)
+						# TO DO
+					else:
+						self._logger.debug("Purge disbled.  Start manual prompt")
+						# Purge inactive - use dialog to warn and optionally stop the print
+						result = -1 # 
+						# TO DO
 
 		return (None, None, self.temp_data)
 
