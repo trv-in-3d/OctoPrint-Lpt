@@ -9,7 +9,7 @@ In manual mode, it will simply warn the user that the last job was at a higher t
 
 
 NOTE:  This is my first GIT repo, and my first attempt at python programming.
-I am using Filament Manager for a lot of my inspiration https://github.com/OllisGit/OctoPrint-FilamentManager.
+I am using Filament Manager for a lot of my inspiration https://github.com/OllisGit/OctoPrint-FilamentManager as well as Smart Preheat https://github.com/kantlivelong/OctoPrint-SmartPreheat/archive/master.zip.
 
 
 
