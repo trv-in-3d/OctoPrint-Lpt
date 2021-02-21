@@ -92,7 +92,7 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 		if not old_purgeenabled==new_purgeenabled:
 			self._logger.debug("Settings Saved.  Purge status changed from {old_purgeenabled}, to={new_purgeenabled}".format(**locals()))
 		if not old_lastt==new_lastt:
-			self._logger.debug("Settings Saved.  Last temp value changed from {old_last}, to={new_lastt}".format(**locals()))
+			self._logger.debug("Settings Saved.  Last temp value changed from {old_lastt}, to={new_lastt}".format(**locals()))
 
 
 	def on_after_startup(self):
