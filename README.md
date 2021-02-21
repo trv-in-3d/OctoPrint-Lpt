@@ -1,6 +1,6 @@
 # OctoPrint-Lpt
 
-**Summary:** OctoPrint Last Print Temp plugin will keep track of the last printed temp used by the printer.  Helpful to remind if you need to purge that ABS filament in the nozzle before trying to print PLA.
+**Summary:** OctoPrint Last Print Temp plugin will keep track of the last printed temp used by the printer.  Helpful to remind you if you need to purge that ABS filament in the nozzle before trying to print PLA.
 
 ## Setup
 
