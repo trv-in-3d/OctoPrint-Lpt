@@ -290,10 +290,11 @@ class LptPlugin(octoprint.plugin.StartupPlugin,
 			foundtemp = re.match("M10[4|9]\s+[S|R](\d+)",cmd).group(1)			
 			if foundtemp:
 				if (int(foundtemp) > 0 ):
-					self._logger.debug("Saving actual temp string: {foundtemp}".format(**locals()))
+					self._logger.debug("Saving actual temp string: {foundtemp} ....".format(**locals()))
 					#self.lastt == foundtemp
 					self._settings.set(["lastt"],foundtemp)
-
+					self._settings.save()
+					self._logger.debug("...saved")
 
 __plugin_name__ = "LPT Plugin"
 

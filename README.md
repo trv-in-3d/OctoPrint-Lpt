@@ -5,7 +5,7 @@
 Since I use a Prusa MMU, my goal is have the plugin automatically determine that the last print job used a higher-temp filament.
 In auto mode, it will heat the hotend to that previous temp, execute a filament load for the first required filament, then perform a filament unload, and return the hotend to the temp required by the current gcode job.
 
-In manual mode, it will simply warn the user that the last job was at a higher temp and offer to cancel the current job before it is started to user can manually check/purge the hot end.
+In manual mode, it will simply warn the user that the last job was at a higher temp and offer to cancel the current job before it is started so the user can manually check/purge the hot end.
 
 
 NOTE:  This is my first GIT repo, and my first attempt at python programming.
