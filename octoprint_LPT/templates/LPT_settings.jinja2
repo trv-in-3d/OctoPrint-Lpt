@@ -1,9 +1,15 @@
 <h3>{{ _('Last Print Temp') }}</h3>
 <form class="form-horizontal">
     <div class="control-group">
-        <label class="control-label">Purge Enabled</label>
+        <label class="control-label">LPT Enabled</label>
         <div class="controls">
             <input type="checkbox" data-bind="checked: settings.plugins.LPT.lptactive">
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label">Purge Enabled</label>
+        <div class="controls">
+            <input type="checkbox" data-bind="checked: settings.plugins.LPT.purgeenabled">
         </div>
     </div>
     <div class="control-group">
@@ -28,10 +34,10 @@
             <small>{{_('Use the following placeholders in your code:  <br>@lastt - temp of last print job<br>@tool - first tool number used in new job<br>@firstt - temp of hotend at first extrusion in new job') }}</small>       
         </div>
     </div>
-    <div class="control-group">
-        <h4>Smart Preheat GCODE Script</h4>
-        Insert the following line into any <a href="https://docs.octoprint.org/en/master/features/gcode_scripts.html" target="_blank">OctoPrint GCODE Script</a>:<br/>
-        <code>{% raw %}{% snippet 'doLPTPurge' %}{% endraw %}</code><br/><br/>
-        <textarea rows="25" class="block" data-bind="value: scripts_gcode_snippets_doLPTPurge"></textarea>
-    </div>
+    <h4>Last Print Temp GCODE Script</h4>
+    Insert the following line into the BEFORE PRINT JOB STARTS <a href="https://docs.octoprint.org/en/master/features/gcode_scripts.html" target="_blank">OctoPrint GCODE Script</a>:<br/>
+    <code>{% raw %}{% snippet 'doLPTPurge' %}{% endraw %}</code><br/><br/>
+    That will cause the following gcode to be run if the Purge Enabled option is set above.
+
+
 </form>
